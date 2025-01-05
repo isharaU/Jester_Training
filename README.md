@@ -11,6 +11,6 @@ This repository contains code for Artificial Neural Network (ANN) modules traine
 
 ## Dataset
 
-The [Jester dataset](https://20bn.com/datasets/jester) is used for training and evaluation. It contains 12-fps videos of various hand gestures. Ensure the dataset is downloaded and organized before running the scripts.
+The [Jester dataset](https://www.kaggle.com/datasets/toxicmender/20bn-jester) is used for training and evaluation. It contains 12-fps videos of various hand gestures. Ensure the dataset is downloaded and organized before running the scripts.
 
 
