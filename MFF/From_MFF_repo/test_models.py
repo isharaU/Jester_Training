@@ -60,6 +60,10 @@ else:
 if args.fp16:
     from torch.cuda.amp import autocast
     logger.info("Mixed precision (FP16) enabled.")
+    print("Mixed precision (FP16) enabled.")
+else:
+    autocast = torch.cuda.amp.autocast
+    print("Mixed precision (FP16) disabled.")
 
 
 class AverageMeter:
@@ -79,6 +83,8 @@ class AverageMeter:
         self.count += n
         self.avg = self.sum / self.count
 
+    print("AverageMeter class defined to compute and track accuracy")
+
 
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
@@ -91,28 +97,56 @@ def accuracy(output, target, topk=(1,)):
     for k in topk:
         correct_k = correct[:k].view(-1).float().sum(0)
         res.append(correct_k.mul_(100.0 / batch_size))
+    print("accuracy function defined for computing precision@k")
     return res
 
 
 # Load dataset categories
 categories, args.train_list, args.val_list, args.root_path, prefix = datasets_video.return_dataset(args.dataset, args.modality)
 num_class = len(categories)
+print('Dataset categories loaded')
 
 # Initialize model
 net = TSN(num_class, args.test_segments if args.consensus_type in ['MLP'] else 1, args.modality,
           base_model=args.arch,
           consensus_type=args.consensus_type,
           img_feature_dim=args.img_feature_dim)
+print("TSN Model Initialized Successfully")
+print(net)  # Prints the architecture of the model
 
 # Load pretrained weights
 logger.info(f"Loading model weights from {args.weights}")
+print(f"Loading model weights from {args.weights}")
 checkpoint = torch.load(args.weights, map_location=device)
 logger.info(f"Model epoch {checkpoint['epoch']}, best prec@1: {checkpoint['best_prec1']}")
 
+# Remove unnecessary prefixes from the checkpoint state_dict and create base_dict
 base_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint['state_dict'].items())}
-net.load_state_dict(base_dict)
+
+# Print the first few keys of the base_dict to verify the modification
+print("First few keys of base_dict:", list(base_dict.keys())[:5])
+
+# Load the cleaned state_dict into the model
+try:
+    net.load_state_dict(base_dict)
+    print("Model weights successfully loaded.")
+except Exception as e:
+    print(f"Error loading model weights: {e}")
+
+# Move the model to the appropriate device (GPU or CPU)
 net = net.to(device)
+print(f"Model moved to {device}.")  # Confirms that the model is now on the correct device
+
+# Set the model to evaluation mode
 net.eval()
+print("Model set to evaluation mode.")
+
+# To ensure everything is loaded properly, check the model's parameters
+print("Model summary (first layer parameters):")
+for name, param in net.named_parameters():
+    if 'conv' in name:  # Just an example: check the convolutional layers
+        print(f"{name}: {param.shape}")
+
 
 # Data preprocessing
 if args.test_crops == 1:
@@ -120,15 +154,18 @@ if args.test_crops == 1:
         GroupScale(net.scale_size),
         GroupCenterCrop(net.input_size),
     ])
+    print(f"Using 1 crop: Center crop with size {net.input_size} and scale size {net.scale_size}.")
 elif args.test_crops == 10:
     cropping = torchvision.transforms.Compose([
         GroupOverSample(net.input_size, net.scale_size)
     ])
+    print(f"Using 10 crops: OverSample with size {net.input_size} and scale size {net.scale_size}.")
 else:
     raise ValueError(f"Unsupported number of test crops: {args.test_crops}")
 
 # Data loading
 data_length = 1 if args.modality == 'RGB' else 5 if args.modality in ['Flow', 'RGBDiff'] else args.num_motion
+print(f"Data length for modality {args.modality}: {data_length}")
 
 data_loader = torch.utils.data.DataLoader(
     TSNDataSet(args.root_path, args.val_list, num_segments=args.test_segments,
@@ -145,6 +182,16 @@ data_loader = torch.utils.data.DataLoader(
                ])),
     batch_size=1, shuffle=False,
     num_workers=args.workers * 2, pin_memory=False)
+print("Data loader initialized with the following parameters:")
+print(f"Root path: {args.root_path}")
+print(f"Validation list: {args.val_list}")
+print(f"Number of segments: {args.test_segments}")
+print(f"New length: {data_length}")
+print(f"Modality: {args.modality}")
+print(f"Image template: {prefix}")
+print(f"Dataset: {args.dataset}")
+print(f"Transforms: {cropping}")
+print("DataLoader created successfully.")
 
 # Evaluation function
 def eval_video(video_data):
@@ -193,6 +240,7 @@ top5 = AverageMeter()
 output = []
 
 for i, (data, label) in enumerate(data_loader):
+    print(f"Processing video {label}...")
     if i >= max_num:
         break
 
