@@ -59,7 +59,6 @@ else:
 # Mixed precision support
 args.fp16 = True
 if args.fp16:
-    from torch.cuda.amp import autocast
     logger.info("Mixed precision (FP16) enabled.")
     print("Mixed precision (FP16) enabled.")
 else:
