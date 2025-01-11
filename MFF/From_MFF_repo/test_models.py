@@ -251,11 +251,11 @@ def eval_video(video_data):
     print(f"Returning results for video index: {i}")
     return i, rst, label[0]
 
-
-
+# Set up the model for evaluation
 # Main evaluation loop
 proc_start_time = time.time()
 max_num = args.max_num if args.max_num > 0 else len(data_loader.dataset)
+print(f"Maximum number of samples to test: {max_num}")
 
 top1 = AverageMeter()
 top5 = AverageMeter()
