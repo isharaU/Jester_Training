@@ -57,12 +57,12 @@ else:
     logger.warning("No GPU available, using CPU instead.")
 
 # Mixed precision support
+args.fp16 = True
 if args.fp16:
     from torch.cuda.amp import autocast
     logger.info("Mixed precision (FP16) enabled.")
     print("Mixed precision (FP16) enabled.")
 else:
-    autocast = torch.cuda.amp.autocast
     print("Mixed precision (FP16) disabled.")
 
 
