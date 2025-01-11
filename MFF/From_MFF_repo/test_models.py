@@ -192,12 +192,16 @@ print(f"Dataset: {args.dataset}")
 print(f"Transforms: {cropping}")
 print("DataLoader created successfully.")
 
-# Evaluation function
 def eval_video(video_data):
     i, data, label = video_data
+    print(f"Processing video index: {i}")
+
+    # Move data and label to the target device
     data = data.to(device)
     label = label.to(device)
+    print(f"Data shape: {data.shape}, Label: {label}")
 
+    # Determine the frame length based on modality
     if args.modality == 'RGB':
         length = 3
     elif args.modality == 'Flow':
@@ -208,26 +212,45 @@ def eval_video(video_data):
         length = 3 + 2 * args.num_motion
     else:
         raise ValueError(f"Unknown modality: {args.modality}")
+    print(f"Modality: {args.modality}, Frame length: {length}")
 
     with torch.no_grad():
         if args.fp16:
+            print("Using mixed precision (fp16) for inference.")
             with autocast():
                 input_var = data.view(-1, length, data.size(2), data.size(3))
+                print(f"Input shape for model (fp16): {input_var.shape}")
                 rst = net(input_var)
         else:
+            print("Using full precision (fp32) for inference.")
             input_var = data.view(-1, length, data.size(2), data.size(3))
+            print(f"Input shape for model (fp32): {input_var.shape}")
             rst = net(input_var)
 
+    print(f"Raw model output shape: {rst.shape}")
+
+    # Apply softmax if needed
     if args.softmax == 1:
+        print("Applying softmax to the model output.")
         rst = F.softmax(rst, dim=1)
 
+    # Convert model output to numpy
     rst = rst.cpu().numpy()
+    print(f"Model output after softmax (if applied), shape: {rst.shape}")
+
+    # Reshape results based on consensus type
     if args.consensus_type in ['MLP']:
         rst = rst.reshape(-1, 1, num_class)
+        print(f"Model output reshaped for MLP consensus, shape: {rst.shape}")
     else:
-        rst = rst.reshape((args.test_crops, args.test_segments, num_class)).mean(axis=0).reshape((args.test_segments, 1, num_class))
+        rst = rst.reshape((args.test_crops, args.test_segments, num_class))
+        print(f"Model output reshaped for consensus, shape before averaging: {rst.shape}")
+        rst = rst.mean(axis=0).reshape((args.test_segments, 1, num_class))
+        print(f"Model output after averaging, shape: {rst.shape}")
 
+    print(f"Returning results for video index: {i}")
     return i, rst, label[0]
+
 
 
 # Main evaluation loop
