@@ -44,6 +44,10 @@ parser.add_argument('--fp16', action='store_true', help="Enable mixed precision 
 
 args = parser.parse_args()
 
+# Set dataset paths
+args.root_path = "/content/drive/MyDrive/V2E/test/jester/flow"
+args.val_list = "/content/drive/MyDrive/V2E/test/jester/jester-v1-validation.csv"
+
 # Check GPU availability
 if torch.cuda.is_available():
     device = torch.device("cuda")
