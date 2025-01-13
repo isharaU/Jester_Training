@@ -13,7 +13,6 @@ import datasets_video
 import torchvision
 from torch.nn import functional as F
 import logging
-from torch.cuda.amp import autocast  # Mixed precision support
 
 # Disable SSL verification (for downloading pretrained models)
 import ssl
@@ -48,10 +47,6 @@ args = parser.parse_args()
 # Set dataset paths
 args.root_path = "/content/drive/MyDrive/V2E/test/jester/20bn-jester-v1"
 args.val_list = "/content/drive/MyDrive/V2E/test/jester/jester-v1-validation.csv"
-
-# Mixed precision support
-args.fp16 = False
-print("Mixed precision (FP16) disabled.")
 
 # Check GPU availability
 if torch.cuda.is_available():
@@ -220,9 +215,17 @@ def eval_video(video_data):
     print(f"Modality: {args.modality}, Frame length: {length}")
 
     with torch.no_grad():
-        input_var = data.view(-1, length, data.size(2), data.size(3))
-        print(f"Input shape for model: {input_var.shape}")
-        rst = net(input_var)
+        if args.fp16:
+            print("Using mixed precision (fp16) for inference.")
+            with autocast():
+                input_var = data.view(-1, length, data.size(2), data.size(3))
+                print(f"Input shape for model (fp16): {input_var.shape}")
+                rst = net(input_var)
+        else:
+            print("Using full precision (fp32) for inference.")
+            input_var = data.view(-1, length, data.size(2), data.size(3))
+            print(f"Input shape for model (fp32): {input_var.shape}")
+            rst = net(input_var)
 
     print(f"Raw model output shape: {rst.shape}")
 
