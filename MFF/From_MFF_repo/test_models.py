@@ -49,6 +49,10 @@ args = parser.parse_args()
 args.root_path = "/content/drive/MyDrive/V2E/test/jester/20bn-jester-v1"
 args.val_list = "/content/drive/MyDrive/V2E/test/jester/jester-v1-validation.csv"
 
+# Mixed precision support
+args.fp16 = False
+print("Mixed precision (FP16) disabled.")
+
 # Check GPU availability
 if torch.cuda.is_available():
     device = torch.device("cuda")
@@ -216,17 +220,34 @@ def eval_video(video_data):
     print(f"Modality: {args.modality}, Frame length: {length}")
 
     with torch.no_grad():
-        if args.fp16:
-            print("Using mixed precision (fp16) for inference.")
-            with autocast():  # Now this will work
-                input_var = data.view(-1, length, data.size(2), data.size(3))
-                print(f"Input shape for model (fp16): {input_var.shape}")
-                rst = net(input_var)
-        else:
-            print("Using full precision (fp32) for inference.")
-            input_var = data.view(-1, length, data.size(2), data.size(3))
-            print(f"Input shape for model (fp32): {input_var.shape}")
-            rst = net(input_var)
+        input_var = data.view(-1, length, data.size(2), data.size(3))
+        print(f"Input shape for model: {input_var.shape}")
+        rst = net(input_var)
+
+    print(f"Raw model output shape: {rst.shape}")
+
+    # Apply softmax if needed
+    if args.softmax == 1:
+        print("Applying softmax to the model output.")
+        rst = F.softmax(rst, dim=1)
+
+    # Convert model output to numpy
+    rst = rst.cpu().numpy()
+    print(f"Model output after softmax (if applied), shape: {rst.shape}")
+
+    # Reshape results based on consensus type
+    if args.consensus_type in ['MLP']:
+        rst = rst.reshape(-1, 1, num_class)
+        print(f"Model output reshaped for MLP consensus, shape: {rst.shape}")
+    else:
+        rst = rst.reshape((args.test_crops, args.test_segments, num_class))
+        print(f"Model output reshaped for consensus, shape before averaging: {rst.shape}")
+        rst = rst.mean(axis=0).reshape((args.test_segments, 1, num_class))
+        print(f"Model output after averaging, shape: {rst.shape}")
+
+    print(f"Returning results for video index: {i}")
+    return i, rst, label[0]
+
 # Set up the model for evaluation
 # Main evaluation loop
 proc_start_time = time.time()
