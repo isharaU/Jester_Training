@@ -57,7 +57,7 @@ else:
     logger.warning("No GPU available, using CPU instead.")
 
 # Mixed precision support
-args.fp16 = True
+args.fp16 = False
 if args.fp16:
     logger.info("Mixed precision (FP16) enabled.")
     print("Mixed precision (FP16) enabled.")
@@ -84,7 +84,6 @@ class AverageMeter:
 
     print("AverageMeter class defined to compute and track accuracy")
 
-
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
@@ -96,7 +95,6 @@ def accuracy(output, target, topk=(1,)):
     for k in topk:
         correct_k = correct[:k].view(-1).float().sum(0)
         res.append(correct_k.mul_(100.0 / batch_size))
-    print("accuracy function defined for computing precision@k")
     return res
 
 
