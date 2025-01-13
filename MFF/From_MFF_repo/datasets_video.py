@@ -65,8 +65,8 @@ def return_dataset(dataset, modality):
         raise ValueError('Unknown dataset ' + dataset)
     
     # These lines are overriding the values from the returned functions, so make sure it's intentional
-    file_imglist_train = '/content/drive/MyDrive/V2E/test/jester/jester-v1-train.csv'
-    file_imglist_val = '/content/drive/MyDrive/V2E/test/jester/jester-v1-validation.csv'
+    file_imglist_train = '/content/MFF-pytorch/train_videofolder.txt'
+    file_imglist_val = '/content/MFF-pytorch/val_videofolder.txt'
     file_categories = '/content/MFF-pytorch/category.txt'
 
     print(f"File paths for dataset '{dataset}':")
