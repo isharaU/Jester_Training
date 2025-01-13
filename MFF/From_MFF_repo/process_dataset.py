@@ -1,10 +1,10 @@
 import os
 import pdb
 
-dataset_name = '/content/drive/MyDrive/V2E/test/jester/jester-v1'
+root = '/content/drive/MyDrive/V2E/test/jester'
 
 # Read category labels
-with open('%s-labels.csv' % dataset_name) as f:
+with open('%s/jester-v1-labels.csv' % root) as f:
     lines = f.readlines()
 
 categories = [line.strip() for line in lines]
@@ -16,7 +16,7 @@ with open('category.txt', 'w') as f:
 
 dict_categories = {category: i for i, category in enumerate(categories)}
 
-files_input = ['%s-validation.csv' % dataset_name, '%s-train.csv' % dataset_name]
+files_input = ['%s/jester-v1-validation.csv' % root, '%s/jester-v1-train.csv' % root]
 files_output = ['val_videofolder.txt', 'train_videofolder.txt']
 
 for filename_input, filename_output in zip(files_input, files_output):
@@ -43,7 +43,7 @@ for filename_input, filename_output in zip(files_input, files_output):
         curIDX = idx_categories[i]
 
         # Corrected dataset path
-        video_folder_path = os.path.join('/content/drive/MyDrive/V2E/test/jester/20bn-jester-v1', curFolder)
+        video_folder_path = os.path.join('%s/rgb' % root, curFolder)
 
         if not os.path.exists(video_folder_path):
             print(f"Warning: Folder {video_folder_path} does not exist, skipping...")
