@@ -287,32 +287,35 @@ if output:
 else:
     logger.error("No output data available for evaluation")
 
+args.save_scores = "/content/drive/MyDrive/V2E/test/jester/jester-v1-validation.npz"
+
 # Save results
-if args.save_scores and output:
-    try:
-        name_list = [x.strip().split()[0] for x in open(args.val_list)]
-        order_dict = {e: i for i, e in enumerate(sorted(name_list))}
-        reorder_output = [None] * len(output)
-        reorder_label = [None] * len(output)
-        reorder_pred = [None] * len(output)
-        output_csv = []
 
-        for i in range(len(output)):
-            idx = order_dict[name_list[i]]
-            reorder_output[idx] = output[i][0]
-            reorder_label[idx] = video_labels[i]
-            reorder_pred[idx] = video_pred[i]
-            output_csv.append(f'{name_list[i]};{categories[video_pred[i]]}')
+try:
+    name_list = [x.strip().split()[0] for x in open(args.val_list)]
+    order_dict = {e: i for i, e in enumerate(sorted(name_list))}
+    reorder_output = [None] * len(output)
+    reorder_label = [None] * len(output)
+    reorder_pred = [None] * len(output)
+    output_csv = []
 
-        np.savez(args.save_scores, 
-                 scores=reorder_output, 
-                 labels=reorder_label, 
-                 predictions=reorder_pred, 
-                 cf=cf)
-        
-        with open(args.save_scores.replace('npz', 'csv'), 'w') as f:
-            f.write('\n'.join(output_csv))
-        
-        logger.info(f"Results saved to {args.save_scores}")
-    except Exception as e:
-        logger.error(f"Error saving results: {e}")
+    for i in range(len(output)):
+        idx = order_dict[name_list[i]]
+        reorder_output[idx] = output[i][0]
+        reorder_label[idx] = video_labels[i]
+        reorder_pred[idx] = video_pred[i]
+        output_csv.append(f'{name_list[i]};{categories[video_pred[i]]}')
+
+    np.savez(args.save_scores, 
+                scores=reorder_output, 
+                labels=reorder_label, 
+                predictions=reorder_pred, 
+                cf=cf)
+    
+    with open(args.save_scores.replace('npz', 'csv'), 'w') as f:
+        f.write('\n'.join(output_csv))
+    print(f"Results saved to {args.save_scores}")
+    
+    logger.info(f"Results saved to {args.save_scores}")
+except Exception as e:
+    logger.error(f"Error saving results: {e}")
