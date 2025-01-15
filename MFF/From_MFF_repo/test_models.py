@@ -13,6 +13,7 @@ import datasets_video
 import torchvision
 from torch.nn import functional as F
 import logging
+import sys
 
 # Disable SSL verification (for downloading pretrained models)
 import ssl
@@ -238,22 +239,51 @@ for i, (data, label) in enumerate(data_loader):
 # Compute final metrics
 if output:
     try:
+        if len(output) == 0:
+            logger.error("No videos were processed successfully")
+            sys.exit(1)
+            
         video_pred = [np.argmax(np.mean(x[0], axis=0)) for x in output]
         video_labels = [x[1] for x in output]
         
-        if video_pred and video_labels:
-            cf = confusion_matrix(video_labels, video_pred).astype(float)
-            cls_cnt = cf.sum(axis=1)
-            cls_hit = np.diag(cf)
-            cls_acc = cls_hit / cls_cnt
+        # Debug logging to see the range of predictions and labels
+        logger.info(f"Unique prediction values: {np.unique(video_pred)}")
+        logger.info(f"Unique label values: {np.unique(video_labels)}")
+        
+        # Force confusion matrix to have correct dimensions
+        cf = confusion_matrix(
+            video_labels, 
+            video_pred,
+            labels=range(num_class)  # This forces the matrix to include all classes
+        ).astype(float)
+        
+        # Verify confusion matrix dimensions
+        if cf.shape != (num_class, num_class):
+            logger.error(f"Confusion matrix has unexpected shape: {cf.shape}, expected ({num_class}, {num_class})")
+            logger.error(f"Number of classes: {num_class}")
+            logger.error(f"Range of predictions: [{min(video_pred)}, {max(video_pred)}]")
+            logger.error(f"Range of labels: [{min(video_labels)}, {max(video_labels)}]")
+            sys.exit(1)
+            
+        cls_cnt = cf.sum(axis=1)
+        # Avoid division by zero
+        cls_cnt[cls_cnt == 0] = 1  # prevent division by zero for classes with no samples
+        cls_hit = np.diag(cf)
+        cls_acc = cls_hit / cls_cnt
 
-            logger.info('-----Evaluation Results-----')
-            logger.info(f'Class Accuracy {np.mean(cls_acc) * 100:.02f}%')
-            logger.info(f'Overall Prec@1 {top1.avg:.02f}% Prec@5 {top5.avg:.02f}%')
-        else:
-            logger.error("No predictions or labels available for confusion matrix")
+        logger.info('-----Evaluation Results-----')
+        logger.info(f'Class Accuracy {np.mean(cls_acc) * 100:.02f}%')
+        logger.info(f'Overall Prec@1 {top1.avg:.02f}% Prec@5 {top5.avg:.02f}%')
+        
+        # Add per-class accuracy logging
+        for i in range(num_class):
+            if cls_cnt[i] > 0:  # Only log classes that have samples
+                logger.info(f'Class {i} ({categories[i]}) Accuracy: {cls_acc[i] * 100:.02f}% ({int(cls_hit[i])}/{int(cls_cnt[i])} samples)')
+            
     except Exception as e:
-        logger.error(f"Error computing metrics: {e}")
+        logger.error(f"Error in metric computation pipeline: {e}")
+        logger.error(f"Debug info - num_class: {num_class}, output length: {len(output)}")
+        raise
 else:
     logger.error("No output data available for evaluation")
 
